@@ -10,15 +10,18 @@
     var global = this,
         window = global.window,
         setup = arguments.callee,
-        scriptUrl,
         toString = Object.prototype.toString,
         slice = Array.prototype.slice,
         map = Array.prototype.map,
+        noop = function() {},
+        scriptUrl,
         ACTION_USER = 0,
         ACTION_RUN = 1,
         ACTION_CALLBACK = 2,
+        ACTION_RETURN = 3,
         TYPE_DEFAULT = 0,
-        TYPE_FUNCTION = 1;
+        TYPE_FUNCTION = 1,
+        TYPE_ERROR = 2;
 
     /**
      * parseFunction 解析Function,得到参数列表和函数体 {{{
@@ -120,6 +123,7 @@
         var self = context;
         return args.map(function(value) {
             var index, count;
+
             switch (toString.call(value).slice(8, -1)) {
                 case 'Function':
                     index = count = self.__callbacks__.length;
@@ -131,27 +135,48 @@
                         index = count;
                     }
                     return [TYPE_FUNCTION, index];
+                case 'Error':
+                    //console.log(value.getMessage());
+                    //console.log(value.message);
+                    return [TYPE_ERROR, {
+                        message: value.message,
+                        fileName: value.fileName,
+                        lineNumber: value.lineNumber,
+                        stack: value.stack
+                    }];
                 default:
                     return [TYPE_DEFAULT, value];
             }
         });
     }
 
+    function defaultCallback(err, data) {
+        if (err) throw err;
+    }
+
     function parseArgumentsPayload(context, args) {
         var self = context;
         return args.map(function(value) {
             var type = value[0],
-                value = value[1];
+                value = value[1],
+                ret;
 
             switch (type) {
                 case TYPE_FUNCTION:
                     return function() {
-                        return self._postMessage ? self._postMessage({
+                        return self._postMessage({
                             type: ACTION_CALLBACK,
                             payload: [value].concat(getArgumentsPayload(self, slice.call(arguments, 0)))
-                        }) : undefined;
+                        });
                     };
+                case TYPE_ERROR:
+                    ret = new Error(value.message);
+                    ret.fileName = value.fileName;
+                    ret.lineNumber = value.lineNumber;
+                    ret.stack = value.stack;
+                    return ret;
                 case TYPE_DEFAULT:
+                default:
                     return value;
             }
         });
@@ -163,37 +188,71 @@
             var self = this,
                 data = e.data,
                 payload = data.payload,
-                fn, args;
+                fn, cb, callback, err, val, args;
             switch (data.type) {
                 case ACTION_RUN:
                     fn = payload.shift();
+                    cb = payload.shift();
                     args = parseArgumentsPayload(self, payload);
-                    return runInThisScope(global, fn, args);
+                    val = err = null;
+                    try {
+                        val = runInThisScope(global, fn, args);
+                    } catch (e) {
+                        err = e;
+                    }
+                    return self._postMessage({
+                        type: ACTION_RETURN,
+                        payload: [cb].concat(getArgumentsPayload(self, [err, val]))
+                    });
+
                 case ACTION_CALLBACK:
                     fn = payload.shift();
                     args = parseArgumentsPayload(self, payload);
                     return self.__callbacks__[fn].apply(self, args);
+
+                case ACTION_RETURN:
+                    cb = payload.shift();
+                    args = parseArgumentsPayload(self, payload);
+                    callback = self.__callbacks__[cb];
+                    self.__callbacks__[cb] = null;
+                    return callback.apply(self, args);
+
                 case ACTION_USER:
-                    return self.onmessage ? self.onmessage(wrapMessageEvent(e)) : undefined;
+                    return self.onmessage(wrapMessageEvent(e));
+
                 default:
                     throw new Error("Unknow event type.");
             }
         },
-        _postMessage: null,
+        _postMessage: noop,
         //public
-        onmessage: null,
+        onmessage: noop,
         postMessage: function(message) {
-            return this._postMessage ? this._postMessage({
+            this._postMessage({
                 type: ACTION_USER,
                 payload: message
-            }) : undefined;
+            });
+            return this;
         },
         run: function(fn, args) {
+            var callback = this.__callbacks__,
+                index;
             args = slice.call(arguments, 1);
-            return this._postMessage ? this._postMessage({
+            args = getArgumentsPayload(this, args);
+            index = callback.length; //回调索引
+            callback.push(defaultCallback); //默认回调
+            this._postMessage({
                 type: ACTION_RUN,
-                payload: [parseFunction(fn)].concat(getArgumentsPayload(this, args))
-            }) : undefined;
+                payload: [parseFunction(fn), index].concat(args)
+            });
+            return this;
+        },
+        done: function(fn) {
+            var callback = this.__callbacks__,
+                index = callback.length;
+            if (!index) return this;
+            callback[index - 1] = fn;
+            return this;
         }
     });
 
