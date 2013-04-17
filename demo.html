@@ -1,0 +1,123 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Resource Map</title>
+</head>
+<body>
+	<div id="graph">loading...</div>
+	<script src="/EasyWorker.js"></script>
+	<script src="/viz/viz.js"></script>
+	<code id="data" style="display:none"><!-- 
+digraph Resources{
+	ratio=auto;
+	node [label"\N", shape=record];
+		uCEcOkUJCq [id=uCEcOkUJCq, class=abc, label="{/libs/BigPipe/javascript/ecma5.js}"];
+		qKwdHYwqgk [id=qKwdHYwqgk, class=abc, label="{/libs/BigPipe/javascript/amd.js}"];
+		uCEcOkUJCq -> qKwdHYwqgk;
+		pJDtzOOJNk [id=pJDtzOOJNk, class=abc, label="{/libs/BigPipe/javascript/copyProperties.js}"];
+		qKwdHYwqgk -> pJDtzOOJNk;
+		cDDAmjPaBQ [id=cDDAmjPaBQ, class=abc, label="{/libs/BigPipe/javascript/BigPipe.js}"];
+		qKwdHYwqgk -> cDDAmjPaBQ;
+		pJDtzOOJNk -> cDDAmjPaBQ;
+		xfPClmBoMZ [id=xfPClmBoMZ, class=abc, label="{/libs/BigPipe/facebook/output/copyProperties.js}"];
+		viocbNVpMO [id=viocbNVpMO, class=abc, label="{/libs/BigPipe/facebook/output/ix.js}"];
+		xfPClmBoMZ -> viocbNVpMO;
+		DmtspiyKWI [id=DmtspiyKWI, class=abc, label="{/libs/BigPipe/facebook/output/Env.js}"];
+		xfPClmBoMZ -> DmtspiyKWI;
+		cWsCopzFZH [id=cWsCopzFZH, class=abc, label="{/libs/BigPipe/facebook/output/ErrorUtils.js}"];
+		DmtspiyKWI -> cWsCopzFZH;
+		fWQHmXyxjt [id=fWQHmXyxjt, class=abc, label="{/libs/BigPipe/facebook/output/invokeCallbacks.js}"];
+		cWsCopzFZH -> fWQHmXyxjt;
+		gFYYHRQwbO [id=gFYYHRQwbO, class=abc, label="{/libs/BigPipe/facebook/output/hasArrayNature.js}"];
+		MpuurRpvip [id=MpuurRpvip, class=abc, label="{/libs/BigPipe/facebook/output/ge.js}"];
+		vgCEJZWnzR [id=vgCEJZWnzR, class=abc, label="{/libs/BigPipe/facebook/output/$.js}"];
+		MpuurRpvip -> vgCEJZWnzR;
+		IcvKgzjaJp [id=IcvKgzjaJp, class=abc, label="{/libs/BigPipe/facebook/output/invariant.js}"];
+		IHNudKkMvO [id=IHNudKkMvO, class=abc, label="{/libs/BigPipe/facebook/output/repeatString.js}"];
+		IcvKgzjaJp -> IHNudKkMvO;
+		TVCOTaDzml [id=TVCOTaDzml, class=abc, label="{/libs/BigPipe/facebook/output/BitMap.js}"];
+		xfPClmBoMZ -> TVCOTaDzml;
+		IHNudKkMvO -> TVCOTaDzml;
+		inheOEnJYD [id=inheOEnJYD, class=abc, label="{/libs/BigPipe/facebook/output/ServerJS.js}"];
+		TVCOTaDzml -> inheOEnJYD;
+		cWsCopzFZH -> inheOEnJYD;
+		xfPClmBoMZ -> inheOEnJYD;
+		MpuurRpvip -> inheOEnJYD;
+		yqNDGxJBjI [id=yqNDGxJBjI, class=abc, label="{/libs/BigPipe/facebook/output/OnloadEvent.js}"];
+		YPZbjDOsyP [id=YPZbjDOsyP, class=abc, label="{/libs/BigPipe/facebook/output/createArrayFrom.js}"];
+		gFYYHRQwbO -> YPZbjDOsyP;
+		GFGaliAODs [id=GFGaliAODs, class=abc, label="{/libs/BigPipe/facebook/output/CallbackDependencyManager.js}"];
+		cWsCopzFZH -> GFGaliAODs;
+		cDyqGpsZfj [id=cDyqGpsZfj, class=abc, label="{/libs/BigPipe/facebook/output/Arbiter.js}"];
+		cWsCopzFZH -> cDyqGpsZfj;
+		GFGaliAODs -> cDyqGpsZfj;
+		xfPClmBoMZ -> cDyqGpsZfj;
+		YPZbjDOsyP -> cDyqGpsZfj;
+		gFYYHRQwbO -> cDyqGpsZfj;
+		KHnGtaoMXd [id=KHnGtaoMXd, class=abc, label="{/libs/BigPipe/facebook/output/Run.js}"];
+		cDyqGpsZfj -> KHnGtaoMXd;
+		yqNDGxJBjI -> KHnGtaoMXd;
+		bkibsVZLOY [id=bkibsVZLOY, class=abc, label="{/libs/BigPipe/facebook/output/PageletSet.js}"];
+		cDyqGpsZfj -> bkibsVZLOY;
+		xfPClmBoMZ -> bkibsVZLOY;
+		lKerOLvEGb [id=lKerOLvEGb, class=abc, label="{/libs/BigPipe/facebook/output/JSCC.js}"];
+		VKJivbiSjy [id=VKJivbiSjy, class=abc, label="{/libs/BigPipe/facebook/output/isEmpty.js}"];
+		CbsIeqyXvV [id=CbsIeqyXvV, class=abc, label="{/libs/BigPipe/facebook/output/CSSLoader.js}"];
+		VKJivbiSjy -> CbsIeqyXvV;
+		VGccXZFDOY [id=VGccXZFDOY, class=abc, label="{/libs/BigPipe/facebook/output/function-extensions.js}"];
+		YPZbjDOsyP -> VGccXZFDOY;
+		ESCaPgLGQI [id=ESCaPgLGQI, class=abc, label="{/libs/BigPipe/facebook/output/Bootloader.js}"];
+		VGccXZFDOY -> ESCaPgLGQI;
+		CbsIeqyXvV -> ESCaPgLGQI;
+		GFGaliAODs -> ESCaPgLGQI;
+		YPZbjDOsyP -> ESCaPgLGQI;
+		cWsCopzFZH -> ESCaPgLGQI;
+		eyjbtCTeVG [id=eyjbtCTeVG, class=abc, label="{/libs/BigPipe/facebook/output/BigPipe.js}"];
+		cDyqGpsZfj -> eyjbtCTeVG;
+		ESCaPgLGQI -> eyjbtCTeVG;
+		DmtspiyKWI -> eyjbtCTeVG;
+		cWsCopzFZH -> eyjbtCTeVG;
+		lKerOLvEGb -> eyjbtCTeVG;
+		yqNDGxJBjI -> eyjbtCTeVG;
+		bkibsVZLOY -> eyjbtCTeVG;
+		KHnGtaoMXd -> eyjbtCTeVG;
+		inheOEnJYD -> eyjbtCTeVG;
+		vgCEJZWnzR -> eyjbtCTeVG;
+		xfPClmBoMZ -> eyjbtCTeVG;
+		MpuurRpvip -> eyjbtCTeVG;
+		gFYYHRQwbO -> eyjbtCTeVG;
+		fWQHmXyxjt -> eyjbtCTeVG;
+		viocbNVpMO -> eyjbtCTeVG;
+
+}
+ --></code>
+	<script>
+		
+		//*
+		var worker = new EasyWorker();
+		worker.setupConsole();
+		worker.run(Viz, $("data").firstChild.nodeValue, "svg").done(function(err, svg){
+			console.log(svg);
+			$("graph").innerHTML=svg;
+		});
+		//*/
+		/*
+		var worker = new EasyWorker("/EasyWorker.js");
+		worker.setupConsole();
+		worker.run(function(update, data){
+			update("loading script...");
+			importScripts("/viz/viz.js");
+			update("rendering ...");
+			update(this.Viz(data, "svg"));
+		}, function(msg){
+			$("graph").innerHTML=msg;
+		}, $("data").firstChild.nodeValue);
+		//*/
+
+		function $(id){
+			return document.getElementById(id);
+		}
+	</script>
+</body>
+</html>
