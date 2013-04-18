@@ -2,7 +2,7 @@
 Make web worker easy to use.  
 让 Web Worker 更易用.  
 
-例子在这里
+[例子在这里](http://zhangyuanwei.github.io/EasyWorker/demo.html)
 
 ### EasyWorker 是什么
 由于js单线程执行的特性，在需要js做大量的运算时，页面会卡死，Web worker提供了一个不错的并行执行的方案，让复杂运算的js可以在新的环境中运行，但是不能支持函数的调用等，只能使用onmessage和postMessage方法来进行主程序和Worker之间的通讯。EasyWorker就是为了解决这样的问题而编写的，它可以实现Worker直接执行函数，并且可以通过回调进行通讯。
