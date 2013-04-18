@@ -31,32 +31,89 @@
     <!-- MAIN CONTENT -->
     <div id="main_content_wrap" class="outer">
       <section id="main_content" class="inner">
-        <h3>Welcome to GitHub Pages.</h3>
+        <h3>EasyWorker</h3>
 
-<p>This automatic page generator is the easiest way to create beautiful pages for all of your projects. Author your page content here using GitHub Flavored Markdown, select a template crafted by a designer, and publish. After your page is generated, you can check out the new branch:</p>
+<p>Make web worker easy to use.<br>
+让 Web Worker 更易用.  </p>
 
-<pre><code>$ cd your_repo_root/repo_name
-$ git fetch origin
-$ git checkout gh-pages
-</code></pre>
+<p><a href="http://zhangyuanwei.github.io/EasyWorker/demo.html">例子在这里</a></p>
 
-<p>If you're using the GitHub for Mac, simply sync your repository and you'll see the new branch.</p>
+<h3>EasyWorker 是什么</h3>
 
-<h3>Designer Templates</h3>
+<p>由于js单线程执行的特性，在需要js做大量的运算时，页面会卡死，Web worker提供了一个不错的并行执行的方案，让复杂运算的js可以在新的环境中运行，但是不能支持函数的调用等，只能使用onmessage和postMessage方法来进行主程序和Worker之间的通讯。EasyWorker就是为了解决这样的问题而编写的，它可以实现Worker直接执行函数，并且可以通过回调进行通讯。</p>
 
-<p>We've crafted some handsome templates for you to use. Go ahead and continue to layouts to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved if it remained markdown format.</p>
+<h3>EasyWorker 怎么用</h3>
 
-<h3>Rather Drive Stick?</h3>
+<div class="highlight"><pre><span class="kd">var</span> <span class="nx">worker</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">EasyWorker</span><span class="p">();</span> <span class="c1">// 初始化一个EasyWorker</span>
 
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator written by our own Tom Preston-Werner. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
+<span class="kd">function</span> <span class="nx">hello</span><span class="p">(</span><span class="nx">callback</span><span class="p">,</span> <span class="nx">to</span><span class="p">){</span>
+    <span class="nx">callback</span><span class="p">(</span><span class="s2">"Hello "</span> <span class="o">+</span> <span class="nx">to</span><span class="p">);</span>
+    <span class="k">return</span> <span class="s2">"Done"</span><span class="p">;</span>
+<span class="p">}</span>
 
-<h3>Authors and Contributors</h3>
+<span class="kd">function</span> <span class="nx">say</span><span class="p">(</span><span class="nx">msg</span><span class="p">){</span>
+    <span class="nx">alert</span><span class="p">(</span><span class="nx">msg</span><span class="p">);</span>
+<span class="p">}</span>
 
-<p>You can <a href="https://github.com/blog/821" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor's GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
+<span class="nx">worker</span><span class="p">.</span><span class="nx">run</span><span class="p">(</span><span class="nx">hello</span><span class="p">,</span> <span class="nx">say</span><span class="p">,</span> <span class="s2">"world"</span><span class="p">)</span> <span class="c1">// 在Worker环境中执行hello函数, 并传入参数</span>
+      <span class="p">.</span><span class="nx">done</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">ret</span><span class="p">){</span> <span class="c1">// 设置执行完成后的回调函数</span>
+          <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">err</span><span class="p">;</span>
+          <span class="nx">alert</span><span class="p">(</span><span class="s2">"return value :"</span> <span class="o">+</span> <span class="nx">ret</span><span class="p">);</span>
+      <span class="p">});</span>
+</pre></div>
 
-<h3>Support or Contact</h3>
+<h3>console 支持</h3>
 
-<p>Having trouble with Pages? Check out the documentation at <a href="http://help.github.com/pages">http://help.github.com/pages</a> or contact <a href="mailto:support@github.com">support@github.com</a> and we’ll help you sort it out.</p>
+<p>由于Web Worker作用域中没有console支持,无法方便的调试，所以Web Worker也封装了console的函数，方便在worker中调用。</p>
+
+<div class="highlight"><pre><span class="kd">var</span> <span class="nx">worker</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">EasyWorker</span><span class="p">();</span>
+    <span class="nx">worker</span><span class="p">.</span><span class="nx">setupConsole</span><span class="p">();</span>  <span class="c1">//设置EasyWorker中的console对象</span>
+    <span class="nx">worker</span><span class="p">.</span><span class="nx">run</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">"hello world."</span><span class="p">);</span>
+    <span class="p">});</span>
+</pre></div>
+
+<h3>常见错误</h3>
+
+<p>由于浏览器实现不能支持作用域之间的调用，所以在Web Worker中执行的函数只能通过参数的形式与主作用域通讯。<br>
+另外，出了函数外，也不能传递其他不能无法串行化的数据。(EasyWorker 封装了函数的调用和传递)</p>
+
+<div class="highlight"><pre><span class="kd">var</span> <span class="nx">worker</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">EasyWorker</span><span class="p">(),</span>
+    <span class="nx">data</span> <span class="o">=</span> <span class="s2">"Some data"</span><span class="p">;</span>
+
+    <span class="nx">worker</span><span class="p">.</span><span class="nx">run</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
+        <span class="k">return</span> <span class="nx">data</span><span class="p">;</span> <span class="c1">//不能取到主作用域的数据</span>
+    <span class="p">});</span>
+
+    <span class="nx">worker</span><span class="p">.</span><span class="nx">run</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">data</span><span class="p">){</span>
+        <span class="k">return</span> <span class="nx">data</span><span class="p">;</span> <span class="c1">//可以通过参数的形式进行传递</span>
+    <span class="p">},</span> <span class="nx">data</span><span class="p">);</span>
+
+    <span class="nx">worker</span><span class="p">.</span><span class="nx">run</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">element</span><span class="p">){</span>
+        <span class="nx">element</span><span class="p">.</span><span class="nx">innerHTML</span> <span class="o">=</span> <span class="s2">"hello"</span><span class="p">;</span>
+    <span class="p">},</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s2">"id"</span><span class="p">));</span> <span class="c1">// Element不能通过参数传递</span>
+
+    <span class="nx">worker</span><span class="p">.</span><span class="nx">run</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">callback</span><span class="p">){</span>
+        <span class="nx">callback</span><span class="p">(</span><span class="s2">"hello"</span><span class="p">);</span>
+    <span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">html</span><span class="p">){</span>
+        <span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s2">"id"</span><span class="p">).</span><span class="nx">innerHTML</span> <span class="o">=</span> <span class="nx">html</span><span class="p">;</span> <span class="c1">// 可以通过回调的方式来实现</span>
+    <span class="p">});</span>
+</pre></div>
+
+<h3>跨域问题</h3>
+
+<p>由于EasyWorker默认使用Blob来创建Web Worker中的代码，所以当在Worker执行的函数中使用AJAX或者importScripts时，会产生跨域问题，您可以通过指定Web worker脚本地址来解决</p>
+
+<div class="highlight"><pre><span class="kd">var</span> <span class="nx">worker</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">EasyWorker</span><span class="p">();</span>
+    <span class="nx">worker</span><span class="p">.</span><span class="nx">run</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
+        <span class="nx">importScripts</span><span class="p">(</span><span class="s2">"somescript.js"</span><span class="p">);</span> <span class="c1">//会产生跨域问题</span>
+    <span class="p">});</span>
+
+    <span class="nx">worker</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">EasyWorker</span><span class="p">(</span><span class="s2">"EasyWorker.js"</span><span class="p">);</span> <span class="c1">//指定EasyWorker库地址</span>
+    <span class="nx">worker</span><span class="p">.</span><span class="nx">run</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
+        <span class="nx">importScripts</span><span class="p">(</span><span class="s2">"somescript.js"</span><span class="p">);</span> <span class="c1">//这样就不会有问题了</span>
+    <span class="p">});</span>
+</pre></div>
       </section>
     </div>
 
