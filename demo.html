@@ -14,22 +14,25 @@
 		function update(str){
 			$("#graph").html(str);
 		}
+		function run(){
+			update(loadingHtml);
+			setTimeout(function(){
+				update(Viz(getDot(), "svg"));
+			}, 20);
+		}
+		function workerRun(){
+			var worker = new EasyWorker();
+			update(loadingHtml);
+			worker.run(Viz, getDot(), "svg")
+			      .done(function(err, data){
+					  if(err) throw err;
+					  update(data);
+			      });
+		}
 		$(function(){
-			$("#run").click(function(){
-				update(loadingHtml);
-				setTimeout(function(){
-					update(Viz(getDot(), "svg"));
-				}, 0);
-			});
-			$("#workerRun").click(function(){
-				var worker = new EasyWorker();
-				update(loadingHtml);
-				worker.run(Viz, getDot(), "svg")
-				      .done(function(err, data){
-						  if(err) throw err;
-						  update(data);
-				      });
-			});
+			$("#run").click(run);
+			$("#workerRun").click(workerRun);
+			workerRun();
 		});
 	</script>
 
