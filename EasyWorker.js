@@ -5,9 +5,10 @@
  *       Modified:  2013-04-14 21:03:28
  *    Description: 直接执行的Worker
  */
-"use strict";
 
 (function setup(global, undefined) {
+    "use strict";
+
     var toString = Object.prototype.toString,
         slice = Array.prototype.slice,
         map = Array.prototype.map,
@@ -16,6 +17,7 @@
         isMaster = true,
         fork = null,
         scriptUrl,
+        exports,
 
         ACTION_USER = 0,
         ACTION_RUN = 1,
@@ -25,8 +27,6 @@
         TYPE_FUNCTION = 1,
         TYPE_ERROR = 2;
 
-
-
     /**
      * initEvn 初始化环境 {{{
      *
@@ -35,7 +35,10 @@
      */
 
     function initEvn() {
-        var child_process = require && require("child_process");
+        var child_process;
+        try {
+            child_process = require("child_process");
+        } catch (e) {}
 
         isNodejs = !! child_process;
         isMaster = isNodejs ? !('NODE_WORKER_ID' in process.env) : !! global.window;
@@ -160,8 +163,6 @@
                     }
                     return [TYPE_FUNCTION, index];
                 case 'Error':
-                    //console.log(value.getMessage());
-                    //console.log(value.message);
                     return [TYPE_ERROR, {
                         message: value.message,
                         fileName: value.fileName,
@@ -334,8 +335,9 @@
          */
 
         function getScriptUrl() {
-            var args, body, content, mime, blob, BlobBuilder, URL;
+            var window, args, body, content, mime, blob, BlobBuilder, URL;
             if (scriptUrl) return scriptUrl;
+            window = global.window;
             args = parseFunction(setup);
             body = args.pop();
             content = ['(function(', args.join(","), '){', body, '})(this);'].join("");
@@ -372,6 +374,8 @@
                     return self._onmessage(e.data);
                 };
                 self.__worker = worker;
+                //设置 Worker 中的Console支持
+                setupConsole.call(this);
             } catch (e) {
                 throw new Error("Can't create web worker. " + e.message);
             }
@@ -381,34 +385,37 @@
         copyProperties(MasterEasyWorker.prototype, {
             _postMessage: function(msg) {
                 return this.__worker.postMessage(msg);
-            },
-            setupConsole: function() {
-                return this.run(setupConsole);
             }
         });
 
         function setupConsole() {
-            var global = this,
-                console = {
-                    log: null,
-                    info: null,
-                    warn: null,
-                    debug: null,
-                    dir: null,
-                    error: null
-                }, name;
+            var self = this,
+                console = global.console,
+                key, value;
 
-            for (name in console) {
-                console[name] = (function(name) {
-                    return function() {
-                        global.runOnMaster.apply(global, [
-                            new Function(
-                                'console.' + name + '.apply(console, Array.prototype.slice.call(arguments, 0));')
-                        ].concat(Array.prototype.slice.call(arguments, 0)));
-                    };
-                })(name);
+            if (!console) return;
+
+            for (key in console) {
+                value = console[key];
+                if (console.hasOwnProperty(key) && toString.call(value) === "[object Function]") {
+                    this.run(injecConsole, key, bindConsole(value));
+                }
             }
-            global.console = console;
+
+            function injecConsole(name, fn) {
+                var global = this,
+                    console = global.console || {};
+                if (!console[name]) {
+                    console[name] = fn;
+                    global.console = console;
+                }
+            }
+
+            function bindConsole(fn) {
+                return function() {
+                    return fn.apply(console, arguments);
+                }
+            }
         }
 
         return MasterEasyWorker;
