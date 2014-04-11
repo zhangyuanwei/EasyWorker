@@ -27,13 +27,20 @@
 
 
 
+    /**
+     * initEvn 初始化环境 {{{
+     *
+     * @access public
+     * @return void
+     */
+
     function initEvn() {
         var child_process = require && require("child_process");
 
         isNodejs = !! child_process;
         isMaster = isNodejs ? !('NODE_WORKER_ID' in process.env) : !! global.window;
         fork = isNodejs ? child_process.fork : null;
-    }
+    } // }}}
 
     /**
      * parseFunction 解析Function,得到参数列表和函数体 {{{
@@ -432,6 +439,13 @@
     }
     // }}}
 
+    /**
+     * setupNodeMaster Nodejs Master 主函数 {{{
+     *
+     * @access public
+     * @return void
+     */
+
     function setupNodeMaster() {
         var util = require("util"),
             copyEnv = util._extend({}, process.env),
@@ -464,7 +478,7 @@
             }
         });
         return MasterEasyWorker;
-    }
+    } // }}}
 
     initEvn();
 
@@ -474,10 +488,12 @@
         exports = isMaster ? setupMaster() : setupWorker();
     }
 
-    if (typeof module === "object" && typeof module.exports === "object") {
-        module.exports = exports;
-    } else {
-        global.EasyWorker = exports;
+    if (exports) {
+        if (typeof module === "object" && typeof module.exports === "object") {
+            module.exports = exports;
+        } else {
+            global.EasyWorker = exports;
+        }
     }
 
 })(this);
