@@ -11,27 +11,26 @@ Make web worker easy to use.
 ```javascript
 var worker = new EasyWorker(); // 初始化一个EasyWorker
 
-function hello(callback, to){
-	callback("Hello " + to);
-	return "Done";
-}
-
 function say(msg){
 	alert(msg);
 }
 
-worker.run(hello, say, "world") // 在Worker环境中执行hello函数, 并传入参数
-      .done(function(err, ret){ // 设置执行完成后的回调函数
-          if(err) throw err;
-          alert("return value :" + ret);
-      });
+worker.run(function(callback, to){
+    /*** 这里是Worker运行环境 ***/
+	callback("Hello " + to);
+	return "Done";
+    /*** Worker 运行环境结束 ***/
+}, say, "world") // 在Worker环境中执行函数, 并传入参数
+    .done(function(err, ret){ // 设置执行完成后的回调函数
+        if(err) throw err;
+        alert("return value :" + ret);
+    });
 ```
 
 ### console 支持
-由于Web Worker作用域中没有console支持,无法方便的调试，所以Web Worker也封装了console的函数，方便在worker中调用。
+由于在有些浏览器的 Web Worker 作用域中没有console支持,无法方便的调试，所以Web Worker也封装了console的函数，方便在worker中调用。
 ```javascript
 var worker = new EasyWorker();
-	worker.setupConsole();  //设置EasyWorker中的console对象
 	worker.run(function(){
 		console.log("hello world.");
 	});
@@ -39,7 +38,7 @@ var worker = new EasyWorker();
 
 ### 常见错误
 由于浏览器实现不能支持作用域之间的调用，所以在Web Worker中执行的函数只能通过参数的形式与主作用域通讯。  
-另外，出了函数外，也不能传递其他不能无法串行化的数据。(EasyWorker 封装了函数的调用和传递)
+另外，除了函数外，也不能传递其他不能无法串行化的数据。(EasyWorker 封装了函数的调用和传递)
 ```javascript
 var worker = new EasyWorker(),
 	data = "Some data";
@@ -64,7 +63,7 @@ var worker = new EasyWorker(),
 ```
 
 ### 跨域问题
-由于EasyWorker默认使用Blob来创建Web Worker中的代码，所以当在Worker执行的函数中使用AJAX或者importScripts时，会产生跨域问题，您可以通过指定Web worker脚本地址来解决
+由于在浏览器环境中EasyWorker默认使用Blob来创建Web Worker中的代码，所以当在Worker执行的函数中使用AJAX或者importScripts时，会产生跨域问题，您可以通过指定Web worker脚本地址来解决
 
 ```javascript
 var worker = new EasyWorker();
