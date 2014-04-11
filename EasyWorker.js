@@ -2,19 +2,21 @@
  *           File:  EasyWorker.js
  *         Author:  zhangyuanwei
  *       Modifier:  zhangyuanwei
- *       Modified:  2013-04-14 21:03:28  
- *    Description: 直接执行的Worker 
+ *       Modified:  2013-04-14 21:03:28
+ *    Description: 直接执行的Worker
  */
+"use strict";
 
-(function() {
-    var global = this,
-        window = global.window,
-        setup = arguments.callee,
-        toString = Object.prototype.toString,
+(function setup(global, undefined) {
+    var toString = Object.prototype.toString,
         slice = Array.prototype.slice,
         map = Array.prototype.map,
         noop = function() {},
+        isNodejs = false,
+        isMaster = true,
+        fork = null,
         scriptUrl,
+
         ACTION_USER = 0,
         ACTION_RUN = 1,
         ACTION_CALLBACK = 2,
@@ -23,12 +25,23 @@
         TYPE_FUNCTION = 1,
         TYPE_ERROR = 2;
 
+
+
+    function initEvn() {
+        var child_process = require && require("child_process");
+
+        isNodejs = !! child_process;
+        isMaster = isNodejs ? !('NODE_WORKER_ID' in process.env) : !! global.window;
+        fork = isNodejs ? child_process.fork : null;
+    }
+
     /**
      * parseFunction 解析Function,得到参数列表和函数体 {{{
-     * 
-     * @param fn 
+     *
+     * @param fn
      * @return Array [arg1, arg2, ..., body]
      */
+
     function parseFunction(fn) {
         var code, body, args;
         if (toString.call(fn) !== "[object Function]")
@@ -44,13 +57,14 @@
 
     /**
      * runInThisScope 在此作用域执行函数 {{{
-     * 
-     * @param context $context 
-     * @param fnArr $fnArr 
-     * @param args $args 
+     *
+     * @param context $context
+     * @param fnArr $fnArr
+     * @param args $args
      * @access public
      * @return void
      */
+
     function runInThisScope(context, fn, args) {
         return Function.apply(context, fn).apply(context, args);
     }
@@ -58,11 +72,12 @@
 
     /**
      * EasyWorkerMessageEvent MessageEvent 封装 {{{
-     * 
-     * @param data $data 
+     *
+     * @param data $data
      * @access public
      * @return void
      */
+
     function EasyWorkerMessageEvent(data) {
         this.data = data;
     }
@@ -77,13 +92,14 @@
     // }}}
 
     /**
-     * copyProperties 属性复制 {{{ 
-     * 
-     * @param to $to 
-     * @param from $from 
+     * copyProperties 属性复制 {{{
+     *
+     * @param to $to
+     * @param from $from
      * @access public
      * @return void
      */
+
     function copyProperties(to, from) {
         for (var i in from) {
             to[i] = from[i];
@@ -91,18 +107,18 @@
     } // }}}
 
     /**
-     * extend 继承 {{{ 
-     * 
-     * @param subClass $subClass 
-     * @param superClass $superClass 
+     * extend 继承 {{{
+     *
+     * @param subClass $subClass
+     * @param superClass $superClass
      * @access public
      * @return void
      */
     var extend = function(subClass, superClass) {
         if (this instanceof extend) {
             this.constructor = subClass;
-            this.__super__ = superClass;
         } else {
+            subClass.__super__ = superClass;
             extend.prototype = superClass.prototype;
             subClass.prototype = new extend(subClass, superClass);
             extend.prototype = null;
@@ -111,10 +127,11 @@
 
     /**
      * EasyWorker 通讯包装 {{{
-     * 
+     *
      * @access public
      * @return void
      */
+
     function EasyWorker() {
         this.__callbacks__ = [];
     }
@@ -184,12 +201,11 @@
 
     copyProperties(EasyWorker.prototype, {
         //private
-        _onmessage: function(e) {
+        _onmessage: function(msg) {
             var self = this,
-                data = e.data,
-                payload = data.payload,
+                payload = msg.payload,
                 fn, cb, callback, err, val, args;
-            switch (data.type) {
+            switch (msg.type) {
                 case ACTION_RUN:
                     fn = payload.shift();
                     cb = payload.shift();
@@ -218,7 +234,7 @@
                     return callback.apply(self, args);
 
                 case ACTION_USER:
-                    return self.onmessage(wrapMessageEvent(e));
+                    return self.onmessage(wrapMessageEvent(msg));
 
                 default:
                     throw new Error("Unknow event type.");
@@ -260,38 +276,35 @@
 
     /**
      * setupWorker Worker 主函数 {{{
-     * 
+     *
      * @access public
      * @return void
      */
+
     function setupWorker() {
         var _postMessage = global.postMessage,
             _onmessage = null,
             worker = new EasyWorker();
 
-        worker.onmessage = function(e) {
-            return _onmessage ? _onmessage.call(global, e) : undefined;
+        worker.onmessage = function(msg) {
+            return _onmessage ? _onmessage.call(global, msg) : undefined;
         };
 
-        worker._postMessage = function(message) {
-            _postMessage.call(global, message);
+        worker._postMessage = function(msg) {
+            _postMessage.call(global, msg);
         };
 
-        function onmessage(e) {
-            return worker._onmessage(e);
-        }
+        global.onmessage = function(e) {
+            return worker._onmessage(e.data);
+        };
 
-        function postMessage(message) {
-            return worker.postMessage(message);
-        }
+        global.postMessage = function(msg) {
+            return worker.postMessage(msg);
+        };
 
-        function masterRun(fn, args) {
-            return worker.run.apply(worker, slice.call(arguments, 0));
-        }
-
-        global.onmessage = onmessage;
-        global.postMessage = postMessage;
-        global.masterRun = masterRun;
+        global.runOnMaster = function(fn, args) {
+            return worker.run.apply(worker, arguments);
+        };
 
         global.__defineSetter__("onmessage", function(callback) {
             _onmessage = callback;
@@ -299,18 +312,20 @@
     } // }}}
 
     /**
-     * setupMaster 绑定 EasyWorker 到浏览器环境  {{{ 
-     * 
+     * setupMaster 绑定 EasyWorker 到浏览器环境  {{{
+     *
      * @access public
      * @return void
      */
+
     function setupMaster() {
         /**
          * getScriptUrl 得到Worker的URL {{{
-         * 
+         *
          * @access public
          * @return void
          */
+
         function getScriptUrl() {
             var args, body, content, mime, blob, BlobBuilder, URL;
             if (scriptUrl) return scriptUrl;
@@ -343,22 +358,22 @@
         function MasterEasyWorker(url) {
             var self = this,
                 worker;
-            this.__super__.call(self);
+            MasterEasyWorker.__super__.call(self);
             try {
                 worker = new Worker(url || getScriptUrl());
                 worker.onmessage = function(e) {
-                    return self._onmessage(e);
+                    return self._onmessage(e.data);
                 };
                 self.__worker = worker;
             } catch (e) {
-                throw new Error("Can't create web worker.");
+                throw new Error("Can't create web worker. " + e.message);
             }
         }
 
         extend(MasterEasyWorker, EasyWorker);
         copyProperties(MasterEasyWorker.prototype, {
-            _postMessage: function(message) {
-                return this.__worker.postMessage(message);
+            _postMessage: function(msg) {
+                return this.__worker.postMessage(msg);
             },
             setupConsole: function() {
                 return this.run(setupConsole);
@@ -379,8 +394,8 @@
             for (name in console) {
                 console[name] = (function(name) {
                     return function() {
-                        global.masterRun.apply(global, [
-                                new Function(
+                        global.runOnMaster.apply(global, [
+                            new Function(
                                 'console.' + name + '.apply(console, Array.prototype.slice.call(arguments, 0));')
                         ].concat(Array.prototype.slice.call(arguments, 0)));
                     };
@@ -389,10 +404,81 @@
             global.console = console;
         }
 
-        window.EasyWorker = MasterEasyWorker;
+        return MasterEasyWorker;
     } // }}}
 
-    window ? setupMaster() : setupWorker();
-})();
+    /**
+     * setupNodeWorker Nodejs Worker 主函数 {{{
+     *
+     * @access public
+     * @return void
+     */
 
+    function setupNodeWorker() {
+        var worker = new EasyWorker(),
+            _send = process.send;
+        process.on("message", function(msg) {
+            return worker._onmessage(msg);
+        });
+        process.send = function(msg) {
+            return worker.postMessage(msg);
+        };
+        /* TODO
+        worker.onmessage = function(msg) { };
+        */
+        worker._postMessage = function(msg) {
+            _send.call(process, msg);
+        };
+    }
+    // }}}
+
+    function setupNodeMaster() {
+        var util = require("util"),
+            copyEnv = util._extend({}, process.env),
+            id = 0;
+
+        function MasterEasyWorker() {
+            var self = this,
+                worker;
+            MasterEasyWorker.__super__.call(this);
+
+            copyEnv["NODE_WORKER_ID"] = ++id;
+            try {
+                worker = fork(__filename, process.argv.slice(2), {
+                    "env": copyEnv
+                });
+                worker.on("message", function(e) {
+                    return self._onmessage(e);
+                });
+                self.__worker = worker;
+            } catch (e) {
+                throw new Error("Can't create web worker. " + e.message);
+            }
+        }
+
+        extend(MasterEasyWorker, EasyWorker);
+
+        copyProperties(MasterEasyWorker.prototype, {
+            _postMessage: function(msg) {
+                return this.__worker.send(msg);
+            }
+        });
+        return MasterEasyWorker;
+    }
+
+    initEvn();
+
+    if (isNodejs) {
+        exports = isMaster ? setupNodeMaster() : setupNodeWorker();
+    } else {
+        exports = isMaster ? setupMaster() : setupWorker();
+    }
+
+    if (typeof module === "object" && typeof module.exports === "object") {
+        module.exports = exports;
+    } else {
+        global.EasyWorker = exports;
+    }
+
+})(this);
 // vim600: sw=4 ts=4 fdm=marker syn=javascript
