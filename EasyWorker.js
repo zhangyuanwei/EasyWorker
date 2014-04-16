@@ -92,48 +92,71 @@
         this.data = data;
     }
 
-    function wrapMessageEvent(e) {
+    function wrapMessageEvent(msg) {
         var ret;
-        EasyWorkerMessageEvent.prototype = e;
-        ret = new EasyWorkerMessageEvent(e.data.payload);
+        EasyWorkerMessageEvent.prototype = msg;
+        ret = new EasyWorkerMessageEvent(msg.payload);
         EasyWorkerMessageEvent.prototype = null;
         return ret;
     }
     // }}}
 
     /**
-     * copyProperties 属性复制 {{{
+     * derives 派生 {{{
      *
-     * @param to $to
-     * @param from $from
+     * @param superClass 父类
+     * @param constructor 构造函数
+     * @param proto 原型对象
      * @access public
      * @return void
      */
 
-    function copyProperties(to, from) {
-        for (var i in from) {
-            to[i] = from[i];
+    function derives(superClass, constructor, proto) {
+
+        superClass = superClass || Object;
+
+        var _constructor = constructor || superClass;
+
+        function subClass() {
+            return _constructor.apply(this, arguments);
         }
-    } // }}}
 
-    /**
-     * extend 继承 {{{
-     *
-     * @param subClass $subClass
-     * @param superClass $superClass
-     * @access public
-     * @return void
-     */
-    var extend = function(subClass, superClass) {
-        if (this instanceof extend) {
-            this.constructor = subClass;
+        if (this instanceof derives) {
+            // subClass.prototype
+            var cp, key;
+
+            if (constructor) {
+                cp = constructor.prototype;
+                for (key in cp) {
+                    this[key] = cp[key];
+                }
+            }
+
+            if (proto) {
+                if (isFunction(proto)) {
+                    proto = proto();
+                }
+                for (key in proto) {
+                    this[key] = proto[key];
+                }
+            }
+
+            this.constructor = cp ? cp.constructor : superClass;
+
         } else {
-            subClass.__super__ = superClass;
-            extend.prototype = superClass.prototype;
-            subClass.prototype = new extend(subClass, superClass);
-            extend.prototype = null;
+            var tmpProto = derives.prototype;
+            derives.prototype = superClass.prototype;
+            subClass.prototype = new derives(superClass, constructor, proto);
+            derives.prototype = tmpProto;
+            subClass._super = superClass;
+            return subClass;
         }
-    }; // }}}
+    }
+
+    function isFunction(obj) {
+        return toString.call(obj) === "[object Function]";
+    }
+    // }}}
 
     /**
      * EasyWorker 通讯包装 {{{
@@ -142,9 +165,85 @@
      * @return void
      */
 
-    function EasyWorker() {
+    var EasyWorker = derives(null, function() {
         this.__callbacks__ = [];
-    }
+    }, {
+        //private
+        _onmessage: function(msg) {
+            var self = this,
+                payload = msg.payload,
+                fn, cb, callback, err, val, args;
+            switch (msg.type) {
+                case ACTION_RUN:
+                    fn = payload.shift();
+                    cb = payload.shift();
+                    args = parseArgumentsPayload(self, payload);
+                    val = err = null;
+                    try {
+                        val = runInThisScope(global, fn, args);
+                    } catch (e) {
+                        err = e;
+                    }
+                    return self._postMessage({
+                        type: ACTION_RETURN,
+                        payload: [cb].concat(getArgumentsPayload(self, [err, val]))
+                    });
+
+                case ACTION_CALLBACK:
+                    fn = payload.shift();
+                    args = parseArgumentsPayload(self, payload);
+                    return self.__callbacks__[fn].apply(self, args);
+
+                case ACTION_RETURN:
+                    cb = payload.shift();
+                    args = parseArgumentsPayload(self, payload);
+                    callback = self.__callbacks__[cb];
+                    self.__callbacks__[cb] = null;
+                    return callback.apply(self, args);
+
+                case ACTION_USER:
+                    return self.onmessage(wrapMessageEvent(msg));
+
+                default:
+                    throw new Error("Unknow event type.");
+            }
+        },
+        _postMessage: noop,
+        _end: noop,
+        //public
+        onmessage: noop,
+        postMessage: function(message) {
+            this._postMessage({
+                type: ACTION_USER,
+                payload: message
+            });
+            return this;
+        },
+        run: function(fn, args) {
+            var callback = this.__callbacks__,
+                index;
+            args = slice.call(arguments, 1);
+            args = getArgumentsPayload(this, args);
+            index = callback.length; //回调索引
+            callback.push(defaultCallback); //默认回调
+            this._postMessage({
+                type: ACTION_RUN,
+                payload: [parseFunction(fn), index].concat(args)
+            });
+            return this;
+        },
+        done: function(fn) {
+            var callback = this.__callbacks__,
+                index = callback.length;
+            if (!index) return this;
+            callback[index - 1] = fn;
+            return this;
+        },
+        end: function() {
+            this._end();
+            return this;
+        }
+    });
 
     function getArgumentsPayload(context, args) {
         var self = context;
@@ -206,79 +305,6 @@
             }
         });
     }
-
-    copyProperties(EasyWorker.prototype, {
-        //private
-        _onmessage: function(msg) {
-            var self = this,
-                payload = msg.payload,
-                fn, cb, callback, err, val, args;
-            switch (msg.type) {
-                case ACTION_RUN:
-                    fn = payload.shift();
-                    cb = payload.shift();
-                    args = parseArgumentsPayload(self, payload);
-                    val = err = null;
-                    try {
-                        val = runInThisScope(global, fn, args);
-                    } catch (e) {
-                        err = e;
-                    }
-                    return self._postMessage({
-                        type: ACTION_RETURN,
-                        payload: [cb].concat(getArgumentsPayload(self, [err, val]))
-                    });
-
-                case ACTION_CALLBACK:
-                    fn = payload.shift();
-                    args = parseArgumentsPayload(self, payload);
-                    return self.__callbacks__[fn].apply(self, args);
-
-                case ACTION_RETURN:
-                    cb = payload.shift();
-                    args = parseArgumentsPayload(self, payload);
-                    callback = self.__callbacks__[cb];
-                    self.__callbacks__[cb] = null;
-                    return callback.apply(self, args);
-
-                case ACTION_USER:
-                    return self.onmessage(wrapMessageEvent(msg));
-
-                default:
-                    throw new Error("Unknow event type.");
-            }
-        },
-        _postMessage: noop,
-        //public
-        onmessage: noop,
-        postMessage: function(message) {
-            this._postMessage({
-                type: ACTION_USER,
-                payload: message
-            });
-            return this;
-        },
-        run: function(fn, args) {
-            var callback = this.__callbacks__,
-                index;
-            args = slice.call(arguments, 1);
-            args = getArgumentsPayload(this, args);
-            index = callback.length; //回调索引
-            callback.push(defaultCallback); //默认回调
-            this._postMessage({
-                type: ACTION_RUN,
-                payload: [parseFunction(fn), index].concat(args)
-            });
-            return this;
-        },
-        done: function(fn) {
-            var callback = this.__callbacks__,
-                index = callback.length;
-            if (!index) return this;
-            callback[index - 1] = fn;
-            return this;
-        }
-    });
 
     // }}}
 
@@ -364,27 +390,27 @@
             return scriptUrl;
         } // }}}
 
-        function MasterEasyWorker(url) {
+        var MasterEasyWorker = derives(EasyWorker, function(url) {
             var self = this,
                 worker;
-            MasterEasyWorker.__super__.call(self);
+            MasterEasyWorker._super.call(self);
             try {
                 worker = new Worker(url || getScriptUrl());
                 worker.onmessage = function(e) {
                     return self._onmessage(e.data);
                 };
-                self.__worker = worker;
+                self._worker = worker;
                 //设置 Worker 中的Console支持
                 setupConsole.call(this);
             } catch (e) {
                 throw new Error("Can't create web worker. " + e.message);
             }
-        }
-
-        extend(MasterEasyWorker, EasyWorker);
-        copyProperties(MasterEasyWorker.prototype, {
+        }, {
             _postMessage: function(msg) {
-                return this.__worker.postMessage(msg);
+                return this._worker.postMessage(msg);
+            },
+            _end: function() {
+                this._worker.terminate();
             }
         });
 
@@ -458,10 +484,10 @@
             copyEnv = util._extend({}, process.env),
             id = 0;
 
-        function MasterEasyWorker() {
+        var MasterEasyWorker = derives(EasyWorker, function() {
             var self = this,
                 worker;
-            MasterEasyWorker.__super__.call(this);
+            MasterEasyWorker._super.call(this);
 
             copyEnv["NODE_WORKER_ID"] = ++id;
             try {
@@ -471,19 +497,19 @@
                 worker.on("message", function(e) {
                     return self._onmessage(e);
                 });
-                self.__worker = worker;
+                self._worker = worker;
             } catch (e) {
                 throw new Error("Can't create web worker. " + e.message);
             }
-        }
-
-        extend(MasterEasyWorker, EasyWorker);
-
-        copyProperties(MasterEasyWorker.prototype, {
+        }, {
             _postMessage: function(msg) {
-                return this.__worker.send(msg);
+                return this._worker.send(msg);
+            },
+            _end: function() {
+                this._worker.disconnect();
             }
         });
+
         return MasterEasyWorker;
     } // }}}
 

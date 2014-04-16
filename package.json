@@ -1,0 +1,20 @@
+{
+    "name": "easy-worker",
+    "version": "1.0.0",
+    "description": "方便使用的Worker封装"
+    "main": "EasyWorker.js",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/zhangyuanwei/EasyWorker.git"
+    },
+    "keywords": [
+        "worker",
+        "webworker",
+        "cluster"
+    ],
+    "author": "ZhangYuanwei <zhangyuanwei1988@gmail.com>",
+    "license": "BSD",
+    "gypfile": true,
+    "readmeFilename": "README.md",
+    "gitHead": ""
+}

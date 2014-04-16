@@ -11,20 +11,21 @@ Make web worker easy to use.
 ```javascript
 var worker = new EasyWorker(); // 初始化一个EasyWorker
 
-function say(msg){
-	alert(msg);
+function say(msg) {
+    console.log(msg);
 }
 
-worker.run(function(callback, to){
+worker.run(function(callback, to) {
     /*** 这里是Worker运行环境 ***/
-	callback("Hello " + to);
-	return "Done";
+    callback("Hello " + to);
+    return "Done";
     /*** Worker 运行环境结束 ***/
 }, say, "world") // 在Worker环境中执行函数, 并传入参数
-    .done(function(err, ret){ // 设置执行完成后的回调函数
-        if(err) throw err;
-        alert("return value :" + ret);
-    });
+.done(function(err, ret) { // 设置执行完成后的回调函数
+    if (err) throw err;
+    console.log("return value :" + ret);
+    worker.end();
+});
 ```
 
 ### console 支持
